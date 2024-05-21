@@ -116,6 +116,74 @@ def delete_user(id_user):
 
 
     # MEALS
+@app.route("/meals",methods=["POST"])
+@login_required
+def create_meal():
+    data = request.json    
+    user_id = current_user.id
+    
+    name = data.get("name")
+    description = data.get("description")
+    inside_diet = data.get("inside_diet")
+
+    if name and description and not inside_diet is None:
+        meal = Meal(name=name,description=description,inside_diet=inside_diet,user_id=user_id)
+        db.session.add(meal)
+        db.session.commit()
+
+        return jsonify({"message": "Refeição criada com sucesso"})
+    
+    return jsonify({ "message": "Parâmetros inválidos" }), 400
+
+@app.route("/meals/<int:id>",methods=["PUT"])
+@login_required
+def update_meal(id):
+    data = request.json
+    user_id = current_user.id
+
+    name = data.get("name")
+    description = data.get("description")
+    inside_diet = data.get("inside_diet")
+
+    meal = Meal.query.get(id)
+
+    if not meal:
+        return jsonify({ "message": "Refeição não encontrada" }), 400
+    
+    if meal.user_id != user_id:
+        return jsonify({ "message": "Operação não permitida" }), 403
+
+    if name or description or not inside_diet is None:
+        if name:
+            meal.name = name
+        
+        if description:
+            meal.description = description
+
+        if not inside_diet is None:
+            meal.inside_diet = inside_diet
+
+        db.session.commit()
+
+        return jsonify({"message": "Refeição atualizada com sucesso"})
+    else:
+        return jsonify({ "message": "Parâmetros inválidos" }), 400
+    
+@app.route("/meals/<int:id>",methods=["DELETE"])
+def delete_meal(id):
+    user_id = current_user.id
+
+    meal = Meal.query.get(id)
+
+    if not meal:
+        return jsonify({ "message": "Refeição não encontrada" }), 400
+    
+    if meal.user_id != user_id:
+        return jsonify({ "message": "Operação não permitida" }), 403
+    
+    db.session.delete(meal)
+    db.session.commit()
+    return jsonify({ "message": f"Refeição {id} deletada com sucesso" })
 
 if __name__ == "__main__":
     app.run(debug=True)
