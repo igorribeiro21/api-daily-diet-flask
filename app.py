@@ -170,6 +170,7 @@ def update_meal(id):
         return jsonify({ "message": "Parâmetros inválidos" }), 400
     
 @app.route("/meals/<int:id>",methods=["DELETE"])
+@login_required
 def delete_meal(id):
     user_id = current_user.id
 
@@ -184,6 +185,47 @@ def delete_meal(id):
     db.session.delete(meal)
     db.session.commit()
     return jsonify({ "message": f"Refeição {id} deletada com sucesso" })
+
+@app.route("/meals",methods=["GET"])
+@login_required
+def get_meals():
+    user_id = current_user.id
+
+    meals = Meal.query.filter(Meal.user_id == user_id).all()
+
+    meals_dict = [{"id": meal.id, "name": meal.name, "description": meal.description, "user_id": meal.user_id, "inside_diet": meal.inside_diet , "created_at": meal.created_at} 
+                    for meal in meals]
+
+    result = {
+        "meals": meals_dict,
+        "total_meals": len(meals)
+    }
+
+    return jsonify(result)
+
+@app.route("/meals/<int:id>", methods=["GET"])
+@login_required
+def get_meal(id):
+    user_id = current_user.id
+
+    meal = Meal.query.get(id)
+
+    if not meal:
+        return jsonify({ "message": "Refeição não encontrada" }), 400
+    
+    if meal.user_id != user_id:
+        return jsonify({ "message": "Operação não permitida" }), 403
+    
+    result = {
+        "id": meal.id,
+        "name": meal.name,
+        "description": meal.description,
+        "user_id": meal.user_id, 
+        "created_at": meal.created_at,
+        "inside_diet": meal.inside_diet
+    }
+    
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True)
